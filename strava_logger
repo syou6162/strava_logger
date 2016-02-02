@@ -1,0 +1,24 @@
+#!/bin/bash
+
+index="strava"
+type="activity"
+
+# curl -XDELETE http://localhost:9200/${index}
+# curl -XPUT localhost:9200/${index} -d '{
+#   "mappings": {
+#     "${type}": {
+#       "properties": {
+#         "start_date": { "type": "date", "format": "basic_date_time_no_millis" },
+#         "start_date_local": { "type": "date", "format": "basic_date_time_no_millis" }
+#       }
+#     }
+#   }
+# }'
+
+curl -s -G https://www.strava.com/api/v3/activities -d access_token=${STRAVA_ACCESS_TOKEN} |
+  jq -c '.[]' |
+  while read line
+  do
+    id=$(echo $line | jq -c '.id' | tr -d "\n")
+    echo -e "{ \"index\" : { \"_index\" : \"${index}\", \"_type\" : \"${type}\", \"_id\" : ${id}} }\n$line" | curl -XPOST localhost:9200/_bulk --data-binary @-
+  done
